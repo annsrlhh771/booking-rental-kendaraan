@@ -1,0 +1,25 @@
+# Build output
+build/
+build-win/
+*.exe
+*.o
+*.obj
+
+# VS Code
+.vscode/
+
+# Code::Blocks
+*.cbp
+*.layout
+*.depend
+*.workspace
+
+# File output program (JANGAN di-commit)
+counter_booking.txt
+status_kendaraan.txt
+data_booking.txt
+BUKTI*.txt
+
+# OS
+.DS_Store
+Thumbs.db
