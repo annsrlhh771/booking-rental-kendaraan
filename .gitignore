@@ -9,8 +9,6 @@ build-win/
 .vscode/
 
 # Code::Blocks
-*.cbp
-*.layout
 *.depend
 *.workspace
 
