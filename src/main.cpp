@@ -120,7 +120,25 @@ int cekDigit(const char *s, int panjang){
     for(int i=0;s[i];i++) if(s[i]<'0' || s[i]>'9') return 0;
     return 1;
 }
+// Cek format dd-mm-yyyy dan apakah tanggalnya valid di kalender
+int parseTanggal(const char *s, int *d, int *m, int *y){
+    if(strlen(s) != 10 || s[2] != '-' || s[5] != '-') return 0;
+    for(int i=0;i<10;i++){
+        if(i==2 || i==5) continue;
+        if(s[i]<'0' || s[i]>'9') return 0;
+    }
+    *d = atoi(s);
+    *m = atoi(s+3);
+    *y = atoi(s+6);
 
+    if(*m<1 || *m>12 || *d<1) return 0;
+
+    int hariPerBulan[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+    int kabisat = ((*y%4==0 && *y%100!=0) || *y%400==0);
+    if(kabisat) hariPerBulan[1] = 29;
+
+    return *d <= hariPerBulan[*m-1];
+}
 // Fungsi print rata tengah
 void printCenter(const char *text, int width){
     int len = strlen(text);
@@ -161,14 +179,21 @@ int main() {
         Booking bk;
         memset(&bk, 0, sizeof(bk));
 
-        printf("\n=== PROGRAM BOOKING RENTAL KENDARAAN ===\n");
+        printf("\n===  BOOKING RENTAL KENDARAAN ===\n");
 
         // Input data penyewa (nama, no HP)
         printf("Masukkan nama penyewa : ");
         bacaTeks(bk.namaPenyewa, sizeof(bk.namaPenyewa));
         printf("Masukkan no HP        : ");
         bacaTeks(bk.noHP, sizeof(bk.noHP));
-
+        // Input No KTP (ulangi sampai 16 digit angka)
+        while(1){
+            printf("Masukkan No KTP (16 digit)     : ");
+            bacaTeks(bk.noKTP, sizeof(bk.noKTP));
+            if(cekDigit(bk.noKTP,16)) break;
+            printf("Data KTP salah! Harus 16 digit angka, silakan ulangi.\n");
+        }
+      
         // Baca nomor booking dari file counter (kalau belum ada, mulai dari 1)
         int nomorBooking = 1;
         FILE *fcounter = fopen("counter_booking.txt","r");
@@ -218,10 +243,27 @@ int main() {
                daftarKendaraan[idxKendaraan].nama);
         printf("     Silakan isi tanggal ambil dan lama sewa.\n\n");
 
-        // Input tanggal ambil
-        printf("Masukkan tanggal ambil (dd-mm-yyyy): ");
-        bacaTeks(bk.tanggalAmbil, sizeof(bk.tanggalAmbil));
+        // Input tanggal ambil (ulangi sampai valid dan bukan tanggal lampau)
+        while(1){
+            printf("Masukkan tanggal ambil (dd-mm-yyyy): ");
+            bacaTeks(bk.tanggalAmbil, sizeof(bk.tanggalAmbil));
 
+            int d, m, y;
+            if(!parseTanggal(bk.tanggalAmbil, &d, &m, &y)){
+                printf("Format atau tanggal tidak valid! Gunakan dd-mm-yyyy, contoh: 22-11-2026\n");
+                continue;
+            }
+
+            int tglAmbil = y*10000 + m*100 + d;
+            int tglHariIni = (tm.tm_year+1900)*10000 + (tm.tm_mon+1)*100 + tm.tm_mday;
+
+            if(tglAmbil < tglHariIni){
+                printf("Tanggal ambil tidak boleh di masa lalu! Minimal hari ini (%02d-%02d-%04d).\n",
+                       tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
+                continue;
+            }
+            break;
+        }
         // Input lama sewa (ulangi sampai > 0)
         while(1){
             printf("Masukkan lama sewa (hari)      : ");
@@ -232,15 +274,7 @@ int main() {
 
         bk.kendaraan = daftarKendaraan[idxKendaraan];
 
-        // ==================== 3. PROSES BIAYA ====================
-        // Input No KTP (ulangi sampai 16 digit angka)
-        while(1){
-            printf("Masukkan No KTP (16 digit)     : ");
-            bacaTeks(bk.noKTP, sizeof(bk.noKTP));
-            if(cekDigit(bk.noKTP,16)) break;
-            printf("Data KTP salah! Harus 16 digit angka, silakan ulangi.\n");
-        }
-
+         // ==================== 3. PROSES BIAYA ====================
         // Hitung harga dasar, diskon 10% (jika >= Rp 500.000), PPN 11%, total bayar
         double hargaDasar = bk.kendaraan.tarifPerHari * bk.lamaSewa;
         double diskon = (hargaDasar>=500000)? hargaDasar*0.10 : 0;
@@ -376,6 +410,6 @@ int main() {
 
     } while(lanjutBooking);
 
-    printf("Program booking rental selesai. Terima kasih!\n");
+    printf("Sistem booking rental selesai. Terima kasih!\n");
     return 0;
 }
